@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Kino</string>
+    <string name="confirm_button_text">confirm</string>
+    <string name="switch_text_off">Disable</string>
+    <string name="switch_text_on">Enable</string>
+    <string name="refresh_button_text">refresh</string>
+</resources>
