@@ -99,6 +99,14 @@ class CinemaHallView @JvmOverloads constructor(
         setMeasuredDimension(width.toInt(), height.toInt())
     }
 
+    private fun isNothingRow(row: List<Byte>): Boolean {
+        var res = true
+        row.forEach {
+            res = res && (it == NOTHING)
+        }
+        return res
+    }
+
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         var x = 0f
@@ -127,17 +135,21 @@ class CinemaHallView @JvmOverloads constructor(
         var rowNumber = 1
         cinemaHallMatrix.forEach {
             x = 0f
-            canvas?.drawText(
-                ROW_TEXT + rowNumber,
-                x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
-                y + PLACE_SIZE / 2 + TEXT_GAP,
-                rowTextPaint
-            )
+            if (isNothingRow(it)) {
+                rowNumber--
+            } else {
+                canvas?.drawText(
+                    ROW_TEXT + rowNumber,
+                    x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
+                    y + PLACE_SIZE / 2 + TEXT_GAP,
+                    rowTextPaint
+                )
+            }
             x += rowTextPaint.measureText(ROW_MAX_TEXT) + GAP
             var placeNumber = 1
             it.forEach { place ->
                 when (place) {
-                    NOTHING -> {}
+                    NOTHING -> {placeNumber--}
                     EMPTY -> {
                         drawPlace(canvas, x, y, emptyPlacePaint)
                     }
@@ -157,12 +169,14 @@ class CinemaHallView @JvmOverloads constructor(
                 placeNumber++
                 x += GAP + PLACE_SIZE
             }
-            canvas?.drawText(
-                ROW_TEXT + rowNumber,
-                x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
-                y + PLACE_SIZE / 2 + TEXT_GAP,
-                rowTextPaint
-            )
+            if (!isNothingRow(it)) {
+                canvas?.drawText(
+                    ROW_TEXT + rowNumber,
+                    x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
+                    y + PLACE_SIZE / 2 + TEXT_GAP,
+                    rowTextPaint
+                )
+            }
             rowNumber++
             y += GAP + PLACE_SIZE
         }

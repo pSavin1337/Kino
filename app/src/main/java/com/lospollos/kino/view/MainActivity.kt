@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
             arrayListOf(
                 arrayListOf(1, 0, 0, 1),
                 arrayListOf(1, 1, 1, 1),
-                arrayListOf(1, 1, 1, 1),
+                arrayListOf(0, 0, 0, 0),
                 arrayListOf(1, 1, 1, 1),
             )
         confirmButton.setOnClickListener {
