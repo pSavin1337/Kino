@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
@@ -15,7 +16,7 @@ class CinemaHallView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val cinemaHallPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var cinemaHallBackgroundColor = Color.GRAY
     private val emptyPlacePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.GRAY
     }
@@ -65,7 +66,7 @@ class CinemaHallView @JvmOverloads constructor(
             context.obtainStyledAttributes(attrs, R.styleable.CinemaHallView, 0, 0)
         val backgroundColor =
             typedArray.getColor(R.styleable.CinemaHallView_backgroundColor, Color.GRAY)
-        cinemaHallPaint.color = backgroundColor
+        cinemaHallBackgroundColor = backgroundColor
         typedArray.recycle()
     }
 
@@ -107,10 +108,15 @@ class CinemaHallView @JvmOverloads constructor(
         return res
     }
 
-    override fun onDraw(canvas: Canvas?) {
-        super.onDraw(canvas)
-        var x = 0f
-        var y = 0f
+    private fun drawScreen(
+        canvas: Canvas?,
+        screenX: Float,
+        screenY: Float,
+        textPaint: Paint,
+        screenPaint: Paint
+    ) {
+        var x = screenX
+        var y = screenY
         canvas?.drawRoundRect(
             x,
             y,
@@ -122,15 +128,42 @@ class CinemaHallView @JvmOverloads constructor(
         )
         x += GAP
         y += GAP
-        leftBound = x
         x += GAP
         canvas?.drawText(
             SCREEN_TEXT,
             (contentWidth + GAP + rowTextPaint.measureText(ROW_MAX_TEXT) * 2) / 2,
             SCREEN_HEIGHT / 2 + SCREEN_TEXT_GAP,
-            screenTextPaint
+            textPaint
         )
-        y += SCREEN_HEIGHT + GAP
+    }
+
+    private fun drawRowNumber(
+        canvas: Canvas?,
+        x: Float,
+        y: Float,
+        textPaint: Paint,
+        rowNumber: Int
+    ) {
+        canvas?.drawText(
+            ROW_TEXT + rowNumber,
+            x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
+            y + PLACE_SIZE / 2 + TEXT_GAP,
+            textPaint
+        )
+    }
+
+    override fun onDraw(canvas: Canvas?) {
+        super.onDraw(canvas)
+
+        canvas?.drawColor(cinemaHallBackgroundColor)
+
+        var x = 0f
+        var y = 0f
+        drawScreen(canvas, x, y, screenTextPaint, screenPaint)
+
+        leftBound = x
+        x += GAP * 2
+        y += GAP * 2 + SCREEN_HEIGHT
         topBound = y
         var rowNumber = 1
         cinemaHallMatrix.forEach {
@@ -138,18 +171,15 @@ class CinemaHallView @JvmOverloads constructor(
             if (isNothingRow(it)) {
                 rowNumber--
             } else {
-                canvas?.drawText(
-                    ROW_TEXT + rowNumber,
-                    x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
-                    y + PLACE_SIZE / 2 + TEXT_GAP,
-                    rowTextPaint
-                )
+                drawRowNumber(canvas, x, y, rowTextPaint, rowNumber)
             }
             x += rowTextPaint.measureText(ROW_MAX_TEXT) + GAP
             var placeNumber = 1
             it.forEach { place ->
                 when (place) {
-                    NOTHING -> {placeNumber--}
+                    NOTHING -> {
+                        placeNumber--
+                    }
                     EMPTY -> {
                         drawPlace(canvas, x, y, emptyPlacePaint)
                     }
@@ -170,12 +200,7 @@ class CinemaHallView @JvmOverloads constructor(
                 x += GAP + PLACE_SIZE
             }
             if (!isNothingRow(it)) {
-                canvas?.drawText(
-                    ROW_TEXT + rowNumber,
-                    x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
-                    y + PLACE_SIZE / 2 + TEXT_GAP,
-                    rowTextPaint
-                )
+                drawRowNumber(canvas, x, y, rowTextPaint, rowNumber)
             }
             rowNumber++
             y += GAP + PLACE_SIZE

@@ -27,6 +27,10 @@ class MainActivity : AppCompatActivity() {
                 arrayListOf(1, 1, 1, 1),
                 arrayListOf(0, 0, 0, 0),
                 arrayListOf(1, 1, 1, 1),
+                arrayListOf(1, 1, 1, 1),
+                arrayListOf(1, 1, 1, 1),
+                arrayListOf(1, 1, 1, 1),
+                arrayListOf(1, 1, 1, 1),
             )
         confirmButton.setOnClickListener {
             cinemaHallView.confirm()
