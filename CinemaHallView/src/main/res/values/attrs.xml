@@ -2,5 +2,7 @@
 <resources>
     <declare-styleable name="CinemaHallView">
         <attr name="backgroundColor" format="color"/>
+        <attr name="placeSize" format="float"/>
+        <attr name="gapBetweenPlaces" format="float"/>
     </declare-styleable>
 </resources>

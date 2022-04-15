@@ -5,8 +5,8 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
@@ -34,11 +34,7 @@ class CinemaHallView @JvmOverloads constructor(
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
     }
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = PLACE_SIZE / 2
-        color = Color.WHITE
-        textAlign = Paint.Align.CENTER
-    }
+    private var textPaint: Paint
     private val rowTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = ROW_TEXT_SIZE
         color = Color.BLACK
@@ -49,9 +45,13 @@ class CinemaHallView @JvmOverloads constructor(
     private var bottomBound: Float = 0f
     private var leftBound: Float = 0f
     private var topBound: Float = 0f
+    private var placeSize: Float = 0f
+    private var gap: Float = 0f
 
     private var contentWidth: Float = 0f
     private var contentHeight: Float = 0f
+
+    private var placeTextRectangle = Rect()
 
     var cinemaHallMatrix: List<MutableList<Byte>> = ArrayList()
         set(value) {
@@ -66,20 +66,46 @@ class CinemaHallView @JvmOverloads constructor(
             context.obtainStyledAttributes(attrs, R.styleable.CinemaHallView, 0, 0)
         val backgroundColor =
             typedArray.getColor(R.styleable.CinemaHallView_backgroundColor, Color.GRAY)
+        val defaultTextPlaceSize = 50f
+        val textPlaceSize =
+            typedArray.getFloat(R.styleable.CinemaHallView_placeSize, defaultTextPlaceSize)
+        val defaultGap = 70f
+        val gapBetweenPlaces =
+            typedArray.getFloat(R.styleable.CinemaHallView_gapBetweenPlaces, defaultGap)
+        gap = gapBetweenPlaces
         cinemaHallBackgroundColor = backgroundColor
+        textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = textPlaceSize
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+        }
         typedArray.recycle()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
 
-        contentWidth = (GAP + PLACE_SIZE) * cinemaHallMatrix[FIRST_ROW_INDEX].size
-        contentHeight = (GAP + PLACE_SIZE) * cinemaHallMatrix.size
+        val maxValueOneDigit = 9
+        val placeMaxText = if (cinemaHallMatrix.size > maxValueOneDigit)
+            PLACE_MAX_TEXT_UPPER_TEN
+        else
+            PLACE_MAX_TEXT_LOWER_TEN
+        val placeTextStart = 0
+        textPaint.getTextBounds(
+            placeMaxText,
+            placeTextStart,
+            placeMaxText.length,
+            placeTextRectangle
+        )
+        placeSize = PLACE_TEXT_GAP * 2 + placeTextRectangle.width()
+
+        contentWidth = (gap + placeSize) * cinemaHallMatrix[FIRST_ROW_INDEX].size
+        contentHeight = (gap + placeSize) * cinemaHallMatrix.size
 
         val desiredWidth =
-            paddingLeft + paddingRight + GAP + contentWidth + rowTextPaint.measureText(
+            paddingLeft + paddingRight + gap + contentWidth + rowTextPaint.measureText(
                 ROW_MAX_TEXT
             ) * 2
-        val desiredHeight = paddingLeft + paddingRight + GAP + contentHeight + SCREEN_HEIGHT + GAP
+        val desiredHeight = paddingLeft + paddingRight + gap + contentHeight + SCREEN_HEIGHT + gap
 
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         val widthSize = MeasureSpec.getSize(widthMeasureSpec).toFloat()
@@ -120,18 +146,17 @@ class CinemaHallView @JvmOverloads constructor(
         canvas?.drawRoundRect(
             x,
             y,
-            x + contentWidth + GAP + rowTextPaint.measureText(ROW_MAX_TEXT) * 2,
+            x + contentWidth + gap + rowTextPaint.measureText(ROW_MAX_TEXT) * 2,
             y + SCREEN_HEIGHT,
             ROUND_X,
             ROUND_Y,
             screenPaint
         )
-        x += GAP
-        y += GAP
-        x += GAP
+        x += gap * 2
+        y += gap
         canvas?.drawText(
             SCREEN_TEXT,
-            (contentWidth + GAP + rowTextPaint.measureText(ROW_MAX_TEXT) * 2) / 2,
+            (contentWidth + gap + rowTextPaint.measureText(ROW_MAX_TEXT) * 2) / 2,
             SCREEN_HEIGHT / 2 + SCREEN_TEXT_GAP,
             textPaint
         )
@@ -147,7 +172,34 @@ class CinemaHallView @JvmOverloads constructor(
         canvas?.drawText(
             ROW_TEXT + rowNumber,
             x + rowTextPaint.measureText(ROW_MAX_TEXT) / 2,
-            y + PLACE_SIZE / 2 + TEXT_GAP,
+            y + placeSize / 2 + TEXT_GAP,
+            textPaint
+        )
+    }
+
+    private fun drawPlace(canvas: Canvas?, x: Float, y: Float, paint: Paint) {
+        canvas?.drawRoundRect(
+            x,
+            y,
+            x + placeSize,
+            y + placeSize,
+            ROUND_X,
+            ROUND_Y,
+            paint
+        )
+    }
+
+    private fun drawPlaceText(
+        canvas: Canvas?,
+        x: Float,
+        y: Float,
+        placeNumber: Int,
+        textPaint: Paint
+    ) {
+        canvas?.drawText(
+            placeNumber.toString(),
+            x + placeSize / 2,
+            y + placeTextRectangle.height() + ((placeSize - placeTextRectangle.height()) / 2),
             textPaint
         )
     }
@@ -162,8 +214,8 @@ class CinemaHallView @JvmOverloads constructor(
         drawScreen(canvas, x, y, screenTextPaint, screenPaint)
 
         leftBound = x
-        x += GAP * 2
-        y += GAP * 2 + SCREEN_HEIGHT
+        x += gap * 2
+        y += gap * 2 + SCREEN_HEIGHT
         topBound = y
         var rowNumber = 1
         cinemaHallMatrix.forEach {
@@ -173,7 +225,7 @@ class CinemaHallView @JvmOverloads constructor(
             } else {
                 drawRowNumber(canvas, x, y, rowTextPaint, rowNumber)
             }
-            x += rowTextPaint.measureText(ROW_MAX_TEXT) + GAP
+            x += rowTextPaint.measureText(ROW_MAX_TEXT) + gap
             var placeNumber = 1
             it.forEach { place ->
                 when (place) {
@@ -185,40 +237,23 @@ class CinemaHallView @JvmOverloads constructor(
                     }
                     SELECTED -> {
                         drawPlace(canvas, x, y, selectedPlacePaint)
-                        canvas?.drawText(
-                            placeNumber.toString(),
-                            x + PLACE_SIZE / 2,
-                            y + PLACE_SIZE / 2 + TEXT_GAP,
-                            textPaint
-                        )
+                        drawPlaceText(canvas, x, y, placeNumber, textPaint)
                     }
                     TAKEN -> {
                         drawPlace(canvas, x, y, takenPlacePaint)
                     }
                 }
                 placeNumber++
-                x += GAP + PLACE_SIZE
+                x += gap + placeSize
             }
             if (!isNothingRow(it)) {
                 drawRowNumber(canvas, x, y, rowTextPaint, rowNumber)
             }
             rowNumber++
-            y += GAP + PLACE_SIZE
+            y += gap + placeSize
         }
-        rightBound = x - GAP
-        bottomBound = y - GAP
-    }
-
-    private fun drawPlace(canvas: Canvas?, x: Float, y: Float, paint: Paint) {
-        canvas?.drawRoundRect(
-            x,
-            y,
-            x + PLACE_SIZE,
-            y + PLACE_SIZE,
-            ROUND_X,
-            ROUND_Y,
-            paint
-        )
+        rightBound = x - gap
+        bottomBound = y - gap
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -231,26 +266,26 @@ class CinemaHallView @JvmOverloads constructor(
                     var placeNumber = 0
                     val x = event.x - rowTextPaint.measureText(ROW_MAX_TEXT)
                     do {
-                        stepX += PLACE_SIZE + GAP
+                        stepX += placeSize + gap
                         placeNumber++
                     } while (stepX < x)
                     placeNumber--
-                    stepX -= (PLACE_SIZE + GAP)
+                    stepX -= (placeSize + gap)
                     val xAboutOnePlace = x - stepX
 
                     var stepY = 0f
                     var rowNumber = 0
-                    val y = event.y - GAP - SCREEN_HEIGHT
+                    val y = event.y - gap - SCREEN_HEIGHT
                     do {
-                        stepY += PLACE_SIZE + GAP
+                        stepY += placeSize + gap
                         rowNumber++
                     } while (stepY < y)
                     rowNumber--
-                    stepY -= (PLACE_SIZE + GAP)
+                    stepY -= (placeSize + gap)
                     val yAboutOnePlace = y - stepY
 
-                    if (xAboutOnePlace > GAP &&
-                        yAboutOnePlace > GAP &&
+                    if (xAboutOnePlace > gap &&
+                        yAboutOnePlace > gap &&
                         event.x < rightBound &&
                         event.y < bottomBound &&
                         event.x > leftBound &&
@@ -304,8 +339,6 @@ class CinemaHallView @JvmOverloads constructor(
         const val EMPTY: Byte = 1
         const val SELECTED: Byte = 2
         const val TAKEN: Byte = 3
-        const val GAP = 70f
-        const val PLACE_SIZE = 100f
         const val TEXT_GAP = 20f
         const val SCREEN_TEXT_GAP = 15f
         const val ROUND_X = 20f
@@ -316,6 +349,9 @@ class CinemaHallView @JvmOverloads constructor(
         const val ROW_TEXT = "Row "
         const val ROW_TEXT_SIZE = 40f
         const val ROW_MAX_TEXT = "Row 9"
+        const val PLACE_MAX_TEXT_LOWER_TEN = "9"
+        const val PLACE_MAX_TEXT_UPPER_TEN = "99"
+        const val PLACE_TEXT_GAP = 40f
     }
 
 }
